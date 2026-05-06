@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch, Router } from "wouter";
+import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useAuth } from "./hooks/useAuth";
@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Campaigns from "./pages/Campaigns";
 import CreateCampaign from "./pages/CreateCampaign";
 import Profile from "./pages/Profile";
+import WorkerLauncher from "./pages/WorkerLauncher";
 import NotFound from "./pages/NotFound";
 
 /**
@@ -38,7 +39,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
-function AppRoutes() {
+function Router() {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -57,6 +58,7 @@ function AppRoutes() {
 
       {/* Protected Routes */}
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
+      <Route path="/worker" component={() => <ProtectedRoute component={WorkerLauncher} />} />
       <Route path="/campaigns" component={() => <ProtectedRoute component={Campaigns} />} />
       <Route path="/campaigns/new" component={() => <ProtectedRoute component={CreateCampaign} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
@@ -69,16 +71,12 @@ function AppRoutes() {
 }
 
 function App() {
-  const basePath = import.meta.env.DEV ? '/' : '/tiktok-automation-platform/';
-  
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Router base={basePath}>
-            <AppRoutes />
-          </Router>
+          <Router />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
