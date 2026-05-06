@@ -10,6 +10,7 @@ import MyCampaigns from './pages/MyCampaigns'
 import WorkerLauncher from './pages/WorkerLauncher'
 import CoinManager from './pages/CoinManager'
 import Profile from './pages/Profile'
+import AdminPanel from './pages/AdminPanel'
 
 function App() {
   const { user, loading } = useAuth()
@@ -33,6 +34,7 @@ function App() {
         <Route path="/worker" element={user ? <WorkerLauncher /> : <Navigate to="/login" />} />
         <Route path="/coins" element={user ? <CoinManager /> : <Navigate to="/login" />} />
         <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+        <Route path="/admin" element={user ? <AdminPanel /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   )
