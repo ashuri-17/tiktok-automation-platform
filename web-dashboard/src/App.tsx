@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
+import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useAuth } from "./hooks/useAuth";
@@ -22,6 +23,13 @@ import NotFound from "./pages/NotFound";
  */
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      setLocation("/login");
+    }
+  }, [loading, user, setLocation]);
 
   if (loading) {
     return (
@@ -32,7 +40,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   if (!user) {
-    window.location.href = "/login";
     return null;
   }
 
@@ -53,8 +60,8 @@ function Router() {
   return (
     <Switch>
       {/* Public Routes */}
-      <Route path="/login" component={() => user ? <Dashboard /> : <Login />} />
-      <Route path="/signup" component={() => user ? <Dashboard /> : <Signup />} />
+      <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
 
       {/* Protected Routes */}
       <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
