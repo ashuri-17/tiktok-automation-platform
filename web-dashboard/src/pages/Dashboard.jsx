@@ -107,7 +107,7 @@ export default function Dashboard() {
                     c.follows_target > 0 && 'Follows'
                   ].filter(Boolean).join(' + ')}
                   progress={c.views_target > 0 ? Math.round((c.views_delivered / c.views_target) * 100) : 0}
-                  spent={Math.round((c.coins_budget || 0) * ((c.views_delivered + c.likes_delivered + c.comments_delivered + c.follows_delivered) / (c.views_target + c.likes_target + c.comments_target + c.follows_target || 1))}
+                  spent={Math.round((c.coins_budget || 0) * ((c.views_delivered + c.likes_delivered + c.comments_delivered + c.follows_delivered) / Math.max(1, c.views_target + c.likes_target + c.comments_target + c.follows_target)))}
                   status={c.status}
                 />
               ))}
