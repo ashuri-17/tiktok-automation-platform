@@ -1,0 +1,19 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 320px; background: #1a1a2e; color: #fff; font-family: sans-serif; }
+.container { padding: 16px; }
+h1 { font-size: 18px; color: #FE2C55; margin-bottom: 12px; }
+.status { text-align: center; padding: 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+.status.running { background: #10B981; }
+.status.stopped { background: #666; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
+.stat { background: #0f0f1a; padding: 8px; border-radius: 4px; }
+.stat .label { font-size: 10px; color: #888; }
+.stat .value { font-size: 14px; font-weight: bold; color: #fff; }
+.actions { margin: 12px 0; }
+.btn { width: 100%; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+.btn-start { background: #FE2C55; color: white; }
+.btn-stop { background: #666; color: white; }
+.btn-small { background: #3B82F6; color: white; padding: 6px 12px; font-size: 11px; border: none; border-radius: 4px; cursor: pointer; margin-top: 4px; }
+.login-status { background: #0f0f1a; padding: 8px; border-radius: 4px; margin: 8px 0; font-size: 12px; }
+.actions-list { margin-top: 12px; }
+.action-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }

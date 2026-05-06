@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>TikFlow Worker</h1>
+    <div id="status-indicator" class="status stopped">● STOPPED</div>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="label">Tasks Done</span>
+        <span id="tasks-done" class="value">0</span>
+      </div>
+      <div class="stat">
+        <span class="label">Coins Earned</span>
+        <span id="coins-earned" class="value">0</span>
+      </div>
+      <div class="stat">
+        <span class="label">Current</span>
+        <span id="current-action" class="value">Idle</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="start-btn" class="btn btn-start">▶ Start Worker</button>
+      <button id="stop-btn" class="btn btn-stop" style="display:none;">■ Stop Worker</button>
+    </div>
+
+    <div class="login-status">
+      <span id="login-status-text">Not logged in</span>
+      <button id="login-btn" class="btn btn-small">Login to TikTok</button>
+      <button id="switch-btn" class="btn btn-small" style="display:none;">Switch Account</button>
+    </div>
+
+    <div class="actions-list">
+      <div class="action-item"><input type="checkbox" id="action-view" checked> <label for="action-view">Views</label></div>
+      <div class="action-item"><input type="checkbox" id="action-like" checked> <label for="action-like">Likes</label></div>
+      <div class="action-item"><input type="checkbox" id="action-comment" checked> <label for="action-comment">Comments</label></div>
+      <div class="action-item"><input type="checkbox" id="action-follow" checked> <label for="action-follow">Follows</label></div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
