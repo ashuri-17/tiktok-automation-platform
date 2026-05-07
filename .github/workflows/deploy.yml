@@ -33,4 +33,4 @@ jobs:
           publish_dir: ./web-dashboard/dist
           publish_branch: gh-pages
           destination_dir: .
-          cname: ''
+          cname: 'ashuri.tikflow'
