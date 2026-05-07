@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch } from "wouter";
+import { useLocation } from "@/hooks/useLocation";
 import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -58,7 +59,7 @@ function Router() {
   }
 
   return (
-    <Switch>
+    <Switch hook={useLocation}>
       {/* Public Routes */}
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
