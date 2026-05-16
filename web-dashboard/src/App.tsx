@@ -1,7 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch } from "wouter";
-import { useLocation } from "@/hooks/useLocation";
+import { Route, Switch, Router, useLocation } from "wouter";
 import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -47,7 +46,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <Component />;
 }
 
-function Router() {
+function AppRoutes() {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -59,7 +58,7 @@ function Router() {
   }
 
   return (
-    <Switch hook={useLocation}>
+    <Switch>
       {/* Public Routes */}
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
@@ -83,8 +82,10 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <Router base="/tiktok-automation-platform">
+            <Toaster />
+            <AppRoutes />
+          </Router>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
