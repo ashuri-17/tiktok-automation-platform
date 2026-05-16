@@ -180,6 +180,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Admin check function (bypasses RLS to prevent infinite recursion in policies)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE);
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
 -- Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
@@ -215,14 +221,14 @@ CREATE POLICY "Users can view own transactions" ON public.coin_transactions
 
 -- Admin policies
 CREATE POLICY "Admins can view all profiles" ON public.profiles
-  FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE));
+  FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins can view all campaigns" ON public.campaigns
-  FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE));
+  FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins can view all tasks" ON public.tasks
-  FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE));
+  FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins can view all transactions" ON public.coin_transactions
-  FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE));
+  FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins can view all logs" ON public.worker_logs
-  FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE));
+  FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins can manage admin_logs" ON public.admin_logs
-  FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE));
+  FOR ALL USING (public.is_admin());
