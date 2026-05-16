@@ -31,7 +31,7 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 -- 1. Profiles (extends Supabase auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   username TEXT UNIQUE,
   tiktok_username TEXT,
   coins INTEGER DEFAULT 0 CHECK (coins >= 0),
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- 2. Campaigns
 CREATE TABLE IF NOT EXISTS public.campaigns (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   video_url TEXT NOT NULL,
   video_id TEXT NOT NULL,
   title TEXT,
@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
 -- 3. Tasks (individual work units)
 CREATE TABLE IF NOT EXISTS public.tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  campaign_id UUID REFERENCES public.campaigns(id) NOT NULL,
-  worker_id UUID REFERENCES public.profiles(id),
+  campaign_id UUID REFERENCES public.campaigns(id) ON DELETE CASCADE NOT NULL,
+  worker_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   action_type TEXT NOT NULL CHECK (action_type IN ('view','like','comment','follow')),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending','assigned','completed','failed')),
   watch_time INTEGER,
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 -- 4. Campaign Comments
 CREATE TABLE IF NOT EXISTS public.campaign_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  campaign_id UUID REFERENCES public.campaigns(id) NOT NULL,
+  campaign_id UUID REFERENCES public.campaigns(id) ON DELETE CASCADE NOT NULL,
   text TEXT NOT NULL,
   used_count INTEGER DEFAULT 0
 );
@@ -93,8 +93,8 @@ CREATE TABLE IF NOT EXISTS public.campaign_comments (
 -- 5. Worker Logs
 CREATE TABLE IF NOT EXISTS public.worker_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  worker_id UUID REFERENCES public.profiles(id) NOT NULL,
-  task_id UUID REFERENCES public.tasks(id),
+  worker_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  task_id UUID REFERENCES public.tasks(id) ON DELETE SET NULL,
   action TEXT NOT NULL,
   ip_address TEXT,
   user_agent TEXT,
@@ -106,11 +106,11 @@ CREATE TABLE IF NOT EXISTS public.worker_logs (
 -- 6. Coin Transactions (audit trail)
 CREATE TABLE IF NOT EXISTS public.coin_transactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES public.profiles(id) NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   amount INTEGER NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('earn_view','earn_like','earn_comment','earn_follow','spend_campaign','bonus_signup')),
-  task_id UUID REFERENCES public.tasks(id),
-  campaign_id UUID REFERENCES public.campaigns(id),
+  task_id UUID REFERENCES public.tasks(id) ON DELETE SET NULL,
+  campaign_id UUID REFERENCES public.campaigns(id) ON DELETE SET NULL,
   balance_after INTEGER NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -118,10 +118,10 @@ CREATE TABLE IF NOT EXISTS public.coin_transactions (
 -- 7. Admin Logs
 CREATE TABLE IF NOT EXISTS public.admin_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  admin_id UUID REFERENCES public.profiles(id) NOT NULL,
+  admin_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   action TEXT NOT NULL,
-  target_user_id UUID REFERENCES public.profiles(id),
-  campaign_id UUID REFERENCES public.campaigns(id),
+  target_user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  campaign_id UUID REFERENCES public.campaigns(id) ON DELETE SET NULL,
   details JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -268,3 +268,99 @@ CREATE POLICY "Admins can view all logs" ON public.worker_logs
   FOR ALL USING (public.is_admin());
 CREATE POLICY "Admins can manage admin_logs" ON public.admin_logs
   FOR ALL USING (public.is_admin());
+
+-- ═══════════════════════════════════════════════
+-- Migration: add ON DELETE CASCADE to existing FKs
+-- (safe to re-run; errors mean constraint was already updated)
+-- ═══════════════════════════════════════════════
+
+DO $$ BEGIN
+  ALTER TABLE public.profiles
+    DROP CONSTRAINT IF EXISTS profiles_id_fkey,
+    ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.campaigns
+    DROP CONSTRAINT IF EXISTS campaigns_user_id_fkey,
+    ADD CONSTRAINT campaigns_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.tasks
+    DROP CONSTRAINT IF EXISTS tasks_campaign_id_fkey,
+    ADD CONSTRAINT tasks_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.tasks
+    DROP CONSTRAINT IF EXISTS tasks_worker_id_fkey,
+    ADD CONSTRAINT tasks_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.campaign_comments
+    DROP CONSTRAINT IF EXISTS campaign_comments_campaign_id_fkey,
+    ADD CONSTRAINT campaign_comments_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.worker_logs
+    DROP CONSTRAINT IF EXISTS worker_logs_worker_id_fkey,
+    ADD CONSTRAINT worker_logs_worker_id_fkey FOREIGN KEY (worker_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.worker_logs
+    DROP CONSTRAINT IF EXISTS worker_logs_task_id_fkey,
+    ADD CONSTRAINT worker_logs_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.tasks(id) ON DELETE SET NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.coin_transactions
+    DROP CONSTRAINT IF EXISTS coin_transactions_user_id_fkey,
+    ADD CONSTRAINT coin_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.coin_transactions
+    DROP CONSTRAINT IF EXISTS coin_transactions_task_id_fkey,
+    ADD CONSTRAINT coin_transactions_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.tasks(id) ON DELETE SET NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.coin_transactions
+    DROP CONSTRAINT IF EXISTS coin_transactions_campaign_id_fkey,
+    ADD CONSTRAINT coin_transactions_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE SET NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.admin_logs
+    DROP CONSTRAINT IF EXISTS admin_logs_admin_id_fkey,
+    ADD CONSTRAINT admin_logs_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.admin_logs
+    DROP CONSTRAINT IF EXISTS admin_logs_target_user_id_fkey,
+    ADD CONSTRAINT admin_logs_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE public.admin_logs
+    DROP CONSTRAINT IF EXISTS admin_logs_campaign_id_fkey,
+    ADD CONSTRAINT admin_logs_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE SET NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
