@@ -1,10 +1,36 @@
 -- Complete database schema for TikTok Automation Platform
+-- Idempotent — safe to re-run on an existing project.
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- ═══════════════════════════════════════════════
+-- Drop phase — remove existing policies/triggers
+-- so the script can be re-run safely
+-- ═══════════════════════════════════════════════
+
+DROP POLICY IF EXISTS "Users can view own profile"      ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile"     ON public.profiles;
+DROP POLICY IF EXISTS "Users can view own campaigns"     ON public.campaigns;
+DROP POLICY IF EXISTS "Users can create own campaigns"   ON public.campaigns;
+DROP POLICY IF EXISTS "Users can update own campaigns"   ON public.campaigns;
+DROP POLICY IF EXISTS "Workers can view pending tasks"   ON public.tasks;
+DROP POLICY IF EXISTS "Workers can update assigned tasks" ON public.tasks;
+DROP POLICY IF EXISTS "Users can view own transactions"  ON public.coin_transactions;
+DROP POLICY IF EXISTS "Admins can view all profiles"     ON public.profiles;
+DROP POLICY IF EXISTS "Admins can view all campaigns"    ON public.campaigns;
+DROP POLICY IF EXISTS "Admins can view all tasks"        ON public.tasks;
+DROP POLICY IF EXISTS "Admins can view all transactions" ON public.coin_transactions;
+DROP POLICY IF EXISTS "Admins can view all logs"         ON public.worker_logs;
+DROP POLICY IF EXISTS "Admins can manage admin_logs"    ON public.admin_logs;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- ═══════════════════════════════════════════════
+-- Tables
+-- ═══════════════════════════════════════════════
+
 -- 1. Profiles (extends Supabase auth.users)
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   username TEXT UNIQUE,
   tiktok_username TEXT,
@@ -17,7 +43,7 @@ CREATE TABLE public.profiles (
 );
 
 -- 2. Campaigns
-CREATE TABLE public.campaigns (
+CREATE TABLE IF NOT EXISTS public.campaigns (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) NOT NULL,
   video_url TEXT NOT NULL,
@@ -43,7 +69,7 @@ CREATE TABLE public.campaigns (
 );
 
 -- 3. Tasks (individual work units)
-CREATE TABLE public.tasks (
+CREATE TABLE IF NOT EXISTS public.tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   campaign_id UUID REFERENCES public.campaigns(id) NOT NULL,
   worker_id UUID REFERENCES public.profiles(id),
@@ -57,7 +83,7 @@ CREATE TABLE public.tasks (
 );
 
 -- 4. Campaign Comments
-CREATE TABLE public.campaign_comments (
+CREATE TABLE IF NOT EXISTS public.campaign_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   campaign_id UUID REFERENCES public.campaigns(id) NOT NULL,
   text TEXT NOT NULL,
@@ -65,7 +91,7 @@ CREATE TABLE public.campaign_comments (
 );
 
 -- 5. Worker Logs
-CREATE TABLE public.worker_logs (
+CREATE TABLE IF NOT EXISTS public.worker_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   worker_id UUID REFERENCES public.profiles(id) NOT NULL,
   task_id UUID REFERENCES public.tasks(id),
@@ -78,7 +104,7 @@ CREATE TABLE public.worker_logs (
 );
 
 -- 6. Coin Transactions (audit trail)
-CREATE TABLE public.coin_transactions (
+CREATE TABLE IF NOT EXISTS public.coin_transactions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) NOT NULL,
   amount INTEGER NOT NULL,
@@ -90,7 +116,7 @@ CREATE TABLE public.coin_transactions (
 );
 
 -- 7. Admin Logs
-CREATE TABLE public.admin_logs (
+CREATE TABLE IF NOT EXISTS public.admin_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   admin_id UUID REFERENCES public.profiles(id) NOT NULL,
   action TEXT NOT NULL,
@@ -100,14 +126,21 @@ CREATE TABLE public.admin_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Indexes for performance
-CREATE INDEX idx_campaigns_user_id ON campaigns(user_id);
-CREATE INDEX idx_campaigns_status ON campaigns(status);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_campaign_id ON tasks(campaign_id);
-CREATE INDEX idx_tasks_worker_id ON tasks(worker_id);
-CREATE INDEX idx_coin_transactions_user_id ON coin_transactions(user_id);
-CREATE INDEX idx_worker_logs_worker_id ON worker_logs(worker_id);
+-- ═══════════════════════════════════════════════
+-- Indexes
+-- ═══════════════════════════════════════════════
+
+CREATE INDEX IF NOT EXISTS idx_campaigns_user_id ON campaigns(user_id);
+CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_campaign_id ON tasks(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_worker_id ON tasks(worker_id);
+CREATE INDEX IF NOT EXISTS idx_coin_transactions_user_id ON coin_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_worker_logs_worker_id ON worker_logs(worker_id);
+
+-- ═══════════════════════════════════════════════
+-- Functions
+-- ═══════════════════════════════════════════════
 
 -- Atomic coin transaction function
 CREATE OR REPLACE FUNCTION public.process_coin_transaction(
@@ -145,7 +178,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
@@ -186,7 +219,10 @@ RETURNS BOOLEAN AS $$
   SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = TRUE);
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
+-- ═══════════════════════════════════════════════
 -- Row Level Security (RLS)
+-- ═══════════════════════════════════════════════
+
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
