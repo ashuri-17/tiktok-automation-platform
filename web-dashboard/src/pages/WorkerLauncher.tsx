@@ -80,8 +80,9 @@ export default function WorkerLauncher() {
             supabase.from('coin_transactions').insert({
               user_id: profile.id,
               amount: earned,
-              type: 'earned',
-              reference_id: `worker-task-${completed}`,
+              type: 'earn_view',
+              task_id: null,
+              campaign_id: null,
             })
           })
 
