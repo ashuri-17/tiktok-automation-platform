@@ -14,12 +14,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: web-dashboard/package-lock.json
 
       - name: Install dependencies
-        run: cd web-dashboard && npm ci
+        run: cd web-dashboard && npm ci --include=optional
 
       - name: Build
         run: cd web-dashboard && npm run build
